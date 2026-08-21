@@ -1,1 +1,0 @@
-# RK_friigate_dockeryml
