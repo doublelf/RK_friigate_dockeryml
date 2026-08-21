@@ -1,0 +1,36 @@
+services:
+  frigate:
+    container_name: frigate
+    privileged: true # 使用特权模式
+    restart: unless-stopped
+    stop_grace_period: 30s # 为各服务提供足够的关闭时间
+    image: docker.cnb.cool/frigate-cn/frigate:stable-rk # 此处为国内镜像源地址，原地址为 ghcr.io/blakeblackshear/frigate:stable-rk
+    shm_size: "512mb" # 根据上述计算结果为你的摄像头更新此值
+    devices:
+      - /dev/dri:/dev/dri # 用于GPU硬件加速
+      - /dev/dma_heap # RockChip DMA 堆
+      - /dev/rga # RockChip RGA
+      - /dev/mpp_service # RockChip MPP 服务
+    security_opt:
+      - apparmor=unconfined
+      - systempaths=unconfined
+    volumes:
+      - /etc/localtime:/etc/localtime:ro # 同步宿主机时间
+      - /home/seeed/frigate/config:/config # "/home/seeed/frigate/config"为你宿主机上希望存放配置文件的路径
+      - /home/seeed/frigate/video:/media/frigate # "/home/seeed/frigate/video"为你宿主机上希望存放监控录像文件的路径
+      - type: tmpfs # 使用 1GB 内存作为录制片段存储的临时存储
+        target: /tmp/cache
+        tmpfs:
+          size: 1000000000
+      - /sys/:/sys/:ro # RockChip 系统信息
+    ports:
+      - "8971:8971" # Frigate 服务默认端口，默认为https
+      - "8554:8554" # RTSP视频流
+      - "8555:8555/tcp" # 基于TCP的WebRTC
+      - "8555:8555/udp" # 基于UDP的WebRTC
+    environment:
+      FRIGATE_RTSP_PASSWORD: "password" # rtsp的密码，请修改为你期望的密码
+      TZ: "Asia/Shanghai" # 设置为中国+8时区
+      HF_ENDPOINT: "https://huggingface.mirror.frigate-cn.video" # 由我们提供的Huggingface国内镜像源，提供Frigate需要用到的部分模型加速下载
+      GITHUB_ENDPOINT: "https://github.mirror.frigate-cn.video" # 由我们提供的GitHub国内镜像源，提供Frigate需要用到的部分模型加速下载
+      TF_KERAS_MOBILENET_V2_WEIGHTS_URL: https://cnb.cool/frigate-cn/mirrors/storage.googleapis/-/git/raw/main/tensorflow/keras-applications/mobilenet_v2/mobilenet_v2_weights_tf_dim_ordering_tf_kernels_0.35_224_no_top.h5 # 分类模型需要的权重文件
